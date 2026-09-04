@@ -14,10 +14,12 @@ services:
     volumes:
       - ai-pipeline-storage:/app/storage
     # Whisper/Demucs/NLLB brauchen deutlich mehr als den Docker-Default an RAM.
+    # Demucs allein kann bei längeren Dateien 5-6 GB belegen; daher hohes Limit,
+    # aber niedriger als der Host-RAM (8 GB), damit noch Reserve für OS/Caddy bleibt.
     deploy:
       resources:
         limits:
-          memory: 6g
+          memory: 7g
 
 volumes:
   ai-pipeline-storage:
