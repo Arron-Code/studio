@@ -21,7 +21,10 @@ def translate(text: str, source_lang: str, target_lang: str) -> str:
         return text
     if source_lang not in NLLB_LANG_CODES or target_lang not in NLLB_LANG_CODES:
         raise ValueError(
-            f"Nicht unterstützte Sprache. Verfügbar: {list(NLLB_LANG_CODES.keys())}"
+            f"Sprache '{source_lang}' wird nicht unterstützt (verfügbar: {list(NLLB_LANG_CODES.keys())}). "
+            "Falls die Aufnahme auf Tigrinya ist: Bitte beim Hochladen die Ausgangssprache "
+            "explizit auf 'Tigrinya' setzen, statt 'Automatisch erkennen' zu verwenden – "
+            "Whisper kann Tigrinya nicht automatisch erkennen und rät sonst eine falsche Sprache."
         )
 
     model, tokenizer = _load_model()
