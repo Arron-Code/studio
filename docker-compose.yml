@@ -1,0 +1,23 @@
+services:
+  ai-pipeline:
+    build: .
+    container_name: medeber-ai-pipeline
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+    environment:
+      # Auf einen langen, zufälligen Wert setzen und exakt denselben Wert als
+      # AI_PIPELINE_API_KEY in Medeber (Vercel) hinterlegen.
+      AI_PIPELINE_API_KEY: "${AI_PIPELINE_API_KEY:?Bitte AI_PIPELINE_API_KEY in .env setzen}"
+      # Komma-getrennt, z.B. "https://medeber.vercel.app". "*" nur für Tests.
+      AI_PIPELINE_CORS_ORIGINS: "${AI_PIPELINE_CORS_ORIGINS:-*}"
+    volumes:
+      - ai-pipeline-storage:/app/storage
+    # Whisper/Demucs/NLLB brauchen deutlich mehr als den Docker-Default an RAM.
+    deploy:
+      resources:
+        limits:
+          memory: 6g
+
+volumes:
+  ai-pipeline-storage:

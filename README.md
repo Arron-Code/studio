@@ -173,6 +173,46 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now medeber-ai-pipeline
 ```
 
+### 2b. Alternative: Betrieb per Docker (empfohlen für Hetzner/DigitalOcean/AWS-VMs)
+
+Statt systemd + venv kann der Service auch über das mitgelieferte `Dockerfile`
+und `docker-compose.yml` betrieben werden:
+
+```bash
+# Auf der VM (Ubuntu/Debian), einmalig Docker installieren:
+curl -fsSL https://get.docker.com | sudo sh
+
+# Repo auf die VM klonen bzw. per scp/git pull aktualisieren
+git clone https://github.com/Arron-Code/studio.git medeber-ai-pipeline
+cd medeber-ai-pipeline
+
+# .env mit den echten Werten anlegen (NICHT committen)
+cat > .env <<'EOF'
+AI_PIPELINE_API_KEY=ein-langer-zufaelliger-schluessel
+AI_PIPELINE_CORS_ORIGINS=https://medeber.vercel.app
+EOF
+
+# Bauen und im Hintergrund starten (Neustart bei VM-Reboot dank restart: unless-stopped)
+sudo docker compose up -d --build
+
+# Logs prüfen
+sudo docker compose logs -f
+```
+
+Der Container legt die Uploads/Job-Ergebnisse in einem benannten Docker-Volume
+(`ai-pipeline-storage`) ab, das einen `docker compose restart`/VM-Reboot übersteht.
+Für ein Update auf eine neue Version:
+
+```bash
+git pull
+sudo docker compose up -d --build
+```
+
+Empfohlene Mindestgröße der VM: 4 vCPU / 8 GB RAM (CPU-Betrieb; siehe
+"Hardware-Anforderungen" unten). Für GPU-Beschleunigung wird ein CUDA-fähiges
+Basis-Image sowie `nvidia-container-toolkit` auf der VM benötigt – aktuell
+nutzt das `Dockerfile` bewusst ein reines CPU-Image.
+
 ### 3. Von außen erreichbar machen
 
 Am einfachsten über einen Reverse-Proxy mit TLS (z.B. Caddy oder nginx +
