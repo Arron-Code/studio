@@ -1,0 +1,28 @@
+# --- Web-Framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+
+# --- Audio-Verarbeitung ---
+# torch/torchaudio: CPU-Wheels per Default; für GPU siehe README (CUDA-Index-URL)
+torch==2.5.1
+torchaudio==2.5.1
+
+# Silero VAD (Sprachaktivitätserkennung)
+silero-vad==5.1.2
+
+# Demucs (Musik-/Stimmtrennung)
+demucs==4.0.1
+
+# Whisper (Spracherkennung) – faster-whisper nutzt CTranslate2, deutlich schneller auf CPU
+faster-whisper==1.1.0
+
+# Übersetzung: NLLB-200 (unterstützt u.a. Tigrinya "tir_Ethi", Deutsch "deu_Latn", Englisch "eng_Latn")
+transformers==4.47.1
+sentencepiece==0.2.0
+accelerate==1.2.1
+
+# --- Utilities ---
+pydantic==2.10.4
+soundfile==0.13.0
+numpy==1.26.4

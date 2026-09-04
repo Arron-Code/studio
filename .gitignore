@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+storage/uploads/*
+storage/jobs/*
+!storage/uploads/.gitkeep
+!storage/jobs/.gitkeep
+.env
+*.log
+
+# Modell-Caches (werden automatisch heruntergeladen, nicht versionieren)
+models/
+.cache/
