@@ -77,11 +77,15 @@ async def process_audio(
     file: UploadFile = File(...),
     separate_music: bool = Form(False),
     target_languages: str = Form("en"),
+    source_language: str = Form(""),
 ) -> JobResponse:
     """Nimmt eine Audio-/Videodatei entgegen und startet die Verarbeitungs-Pipeline.
 
     - separate_music: falls True, wird Demucs zur Vocals-Extraktion vorgeschaltet
     - target_languages: kommagetrennte Liste von Zielsprachen, z.B. "en,ti"
+    - source_language: optional. Whisper erkennt die Ausgangssprache normalerweise
+      automatisch, unterstützt Tigrinya ("ti") aber nicht. Wird "ti" explizit
+      angegeben, wird stattdessen ein spezialisiertes Tigrinya-Modell verwendet.
     """
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_EXTENSIONS:
@@ -91,8 +95,16 @@ async def process_audio(
         )
 
     languages = [lang.strip() for lang in target_languages.split(",") if lang.strip()]
+    source_lang = source_language.strip() or None
 
-    job_id = create_job(file.filename or "upload", {"separate_music": separate_music, "target_languages": languages})
+    job_id = create_job(
+        file.filename or "upload",
+        {
+            "separate_music": separate_music,
+            "target_languages": languages,
+            "source_language": source_lang,
+        },
+    )
 
     job_upload_dir = UPLOADS_DIR / job_id
     job_upload_dir.mkdir(parents=True, exist_ok=True)
@@ -118,6 +130,7 @@ async def process_audio(
                 work_dir,
                 separate_music=separate_music,
                 target_languages=languages,
+                source_language=source_lang,
             )
         except Exception as exc:  # noqa: BLE001 - Fehler soll im Job-Status sichtbar sein
             update_job(job_id, status=JobStatus.ERROR, progress="Fehler", error=str(exc))
