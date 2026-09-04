@@ -1,4 +1,5 @@
 """Zentrale Konfiguration der Medeber AI Pipeline."""
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,3 +27,13 @@ TRANSLATION_MODEL_NAME = "facebook/nllb-200-distilled-600M"
 
 MAX_UPLOAD_SIZE_BYTES = 500 * 1024 * 1024  # 500 MB
 ALLOWED_EXTENSIONS = {".mp3", ".wav", ".m4a", ".mp4", ".mov", ".webm", ".ogg", ".flac"}
+
+# API-Key-Absicherung: Wird die VM per Internet erreichbar gemacht (z.B. damit Vercel
+# darauf zugreifen kann), MUSS dieser Wert per Umgebungsvariable gesetzt werden.
+# Ist er leer, läuft der Service ungeschützt (nur für rein lokale Nutzung akzeptabel).
+API_KEY = os.environ.get("AI_PIPELINE_API_KEY", "").strip()
+
+# Kommagetrennte Liste erlaubter Origins für CORS, z.B. "https://medeber.vercel.app".
+# Leer/"*" erlaubt alle Origins (Standard für lokale Entwicklung).
+_cors_env = os.environ.get("AI_PIPELINE_CORS_ORIGINS", "*").strip()
+CORS_ORIGINS = ["*"] if _cors_env in ("", "*") else [o.strip() for o in _cors_env.split(",") if o.strip()]

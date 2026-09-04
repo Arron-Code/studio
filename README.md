@@ -42,6 +42,10 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8008
 ```
 
+> Um Werte aus einer `.env`-Datei zu laden (z. B. `AI_PIPELINE_API_KEY`), nutze
+> `uvicorn app.main:app --port 8008 --env-file .env` (uvicorn liest die Datei
+> nativ ein, es ist kein zusätzliches Paket nötig).
+
 Die interaktive API-Doku ist danach unter `http://localhost:8008/docs` erreichbar.
 
 > Der **erste** Aufruf jedes Pipeline-Schritts lädt das jeweilige Modell aus dem
@@ -126,6 +130,84 @@ storage/
   jobs/{job_id}.json          # Job-Status & Ergebnis
   jobs/{job_id}/demucs/       # Zwischenergebnisse der Musiktrennung
 ```
+
+## Sicherer Betrieb auf einer eigenen VM (für Vercel-Anbindung)
+
+Da Whisper, Demucs und NLLB-200 zu groß/rechenintensiv für Vercel-Functions sind
+(keine GPU, kein `ffmpeg`, harte Zeit-/Größenlimits), läuft dieser Service auf
+einer eigenen Maschine (VM, Homeserver, Cloud-VM) und wird von der auf Vercel
+gehosteten Medeber-App per HTTPS-API angesprochen.
+
+### 1. API-Key setzen (Pflicht, sobald der Service aus dem Internet erreichbar ist)
+
+```powershell
+# .env im medeber-ai-pipeline Verzeichnis (oder Umgebungsvariable der VM)
+AI_PIPELINE_API_KEY=ein-langer-zufaelliger-schluessel
+AI_PIPELINE_CORS_ORIGINS=https://medeber.vercel.app
+```
+
+Ohne `AI_PIPELINE_API_KEY` bleibt der Service ungeschützt – nur für rein
+lokale Nutzung ohne Port-Weiterleitung ins Internet akzeptabel.
+
+### 2. Service dauerhaft laufen lassen (systemd, Linux-VM)
+
+```ini
+# /etc/systemd/system/medeber-ai-pipeline.service
+[Unit]
+Description=Medeber AI Pipeline
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/medeber-ai-pipeline
+Environment="AI_PIPELINE_API_KEY=ein-langer-zufaelliger-schluessel"
+Environment="AI_PIPELINE_CORS_ORIGINS=https://medeber.vercel.app"
+ExecStart=/opt/medeber-ai-pipeline/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8008
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now medeber-ai-pipeline
+```
+
+### 3. Von außen erreichbar machen
+
+Am einfachsten über einen Reverse-Proxy mit TLS (z.B. Caddy oder nginx +
+Let's Encrypt), damit der Endpunkt per `https://ki.meine-domain.de` statt
+unverschlüsseltem HTTP erreichbar ist:
+
+```
+# Caddyfile
+ki.meine-domain.de {
+    reverse_proxy localhost:8008
+}
+```
+
+### 4. Vercel (Medeber) mit der VM verbinden
+
+In den Vercel-Projekteinstellungen (Settings → Environment Variables) für
+das Medeber-Projekt setzen:
+
+| Variable              | Wert                                  |
+|-----------------------|----------------------------------------|
+| `AI_PIPELINE_URL`     | `https://ki.meine-domain.de`           |
+| `AI_PIPELINE_API_KEY` | derselbe Wert wie `AI_PIPELINE_API_KEY` auf der VM |
+
+Danach in Vercel neu deployen (Redeploy). Medeber ruft die KI-Pipeline dann
+über diese URL mit dem `X-API-Key`-Header auf – die schwere Verarbeitung
+läuft weiterhin vollständig auf der eigenen VM, nicht auf Vercel.
+
+## Hinweis: Dieses Projekt selbst NICHT auf Vercel deployen
+
+Dieses Repository (`medeber-ai-pipeline` / `studio`) ist ein reiner
+Python/FastAPI-Dauerdienst mit GB-großen ML-Modellen und `ffmpeg`-Abhängigkeit.
+Vercel-Functions sind dafür ungeeignet (kein unterstütztes Framework, keine
+GPU, harte Zeit-/Größenlimits, kein persistenter Prozess). Nur die
+schlanke Next.js-App **Medeber** wird auf Vercel gehostet; dieser Service
+läuft auf der eigenen VM.
 
 ## Hardware-Anforderungen
 
